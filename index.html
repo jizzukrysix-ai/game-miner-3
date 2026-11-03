@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#101c25">
+<title>Diamond Miner</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<style>
+:root{
+  --bg:#101c25; --panel:#18293a; --line:#2b4256; --text:#e8f1f5; --muted:#8ea6b4;
+  --lamp:#f2b45a; --gem:#5fe0e6; --rose:#f08aa8; --ok:#7fd99a;
+  --ra:#9a6b4f; --rb:#6f4a38;
+  --f:"Trebuchet MS",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:var(--f);overscroll-behavior:none}
+body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+#app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+.bal{display:flex;align-items:center;gap:8px;font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.bal svg{width:30px;height:30px}
+.sub{font-size:13px;color:var(--muted);margin-top:4px;display:flex;gap:10px}
+#boost{color:var(--lamp);font-weight:700}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:700 16px var(--f);cursor:pointer}
+main{flex:1;overflow-y:auto;padding:8px 16px 16px}
+section[hidden]{display:none}
+.layer{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--muted)}
+.layer b{color:var(--text);font-size:18px}
+.bar{height:8px;border-radius:4px;background:var(--panel);overflow:hidden;margin:6px 0 14px}
+.bar i{display:block;height:100%;width:0;background:var(--gem);transition:width .2s}
+.bar.e i{background:var(--lamp)}
+#stage{position:relative;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer;margin:4px 0 8px}
+#stage svg{width:100%;height:auto;display:block;max-height:46vh}
+#rockG{transform-box:fill-box;transform-origin:50% 100%}
+.pop{position:absolute;pointer-events:none;font-weight:700;font-size:22px;color:var(--gem);text-shadow:0 2px 0 rgba(0,0,0,.4);animation:up .8s ease-out forwards}
+@keyframes up{to{transform:translateY(-70px);opacity:0}}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.opt{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.opt p{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.btn{display:block;width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:600 15px var(--f);text-align:left;cursor:pointer}
+.btn+.btn{margin-top:8px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.go{background:var(--lamp);border-color:var(--lamp);color:#2a1c05;text-align:center}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .t{flex:1}
+.row .t b{display:block;font-size:16px}
+.row .t span{font-size:13px;color:var(--muted)}
+.row .btn{width:auto;white-space:nowrap;padding:9px 12px;text-align:center}
+h2{font-size:18px;margin:14px 0 4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 14px;margin-bottom:12px}
+.stat{display:flex;justify-content:space-between;padding:9px 0;font-size:14px;border-bottom:1px solid var(--line)}
+.stat:last-child{border-bottom:0}
+.stat span:first-child{color:var(--muted)}
+nav{display:flex;border-top:1px solid var(--line);background:var(--bg)}
+nav button{flex:1;padding:14px 4px;background:none;border:0;color:var(--muted);font:600 14px var(--f);cursor:pointer;border-top:3px solid transparent}
+nav button[aria-selected="true"]{color:var(--text);border-top-color:var(--lamp)}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);max-width:88%;background:#223a4e;border:1px solid var(--line);padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;text-align:center}
+#toast.on{opacity:1}
+#modal{position:fixed;inset:0;background:rgba(5,10,14,.8);display:none;z-index:30;padding:20px;overflow-y:auto}
+#modal.on{display:block}
+#modal .box{max-width:440px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+#modal h3{margin:14px 0 4px;font-size:15px}
+#modal p{margin:0;font-size:14px;line-height:1.5;color:#c4d4dc}
+button:focus-visible,#stage:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+body{background:radial-gradient(ellipse at 50% 34%,rgba(242,180,90,.17),transparent 56%),repeating-linear-gradient(180deg,rgba(255,255,255,.022) 0 2px,transparent 2px 46px),var(--bg)}
+.card,.gem{background:rgba(24,41,58,.72);backdrop-filter:blur(6px)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gem{border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.gem.locked{opacity:.55}.gem svg{width:42px;height:42px}.gem b{display:block;margin-top:4px}.gem small{color:var(--muted);font-size:12px}
+.gem .btn{margin-top:8px;text-align:center;padding:8px;font-size:13px}
+.hint{margin:0 0 10px;font-size:13px;color:var(--muted);line-height:1.45}
+.chip{position:absolute;width:7px;height:7px;background:var(--ra);border-radius:2px;pointer-events:none}
+#vein{position:absolute;width:58px;height:58px;border-radius:50%;border:0;background:radial-gradient(circle,#ffe9a8,#f2b45a 60%,#b9791c);box-shadow:0 0 26px 7px rgba(242,180,90,.6);font-size:26px;color:#5a3a06;cursor:pointer;animation:pulse .9s infinite alternate}
+@keyframes pulse{to{transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.pop{animation-duration:.01s}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <div class="bal">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 27,12 16,29 5,12" fill="#5fe0e6"/><polygon points="16,3 27,12 16,13 5,12" fill="#b4f4f6"/><polygon points="16,13 27,12 16,29" fill="#2fb3bd"/></svg>
+        <span id="bal">0</span>
+      </div>
+      <div class="sub"><span id="rate">+0/s</span><span id="boost"></span></div>
+    </div>
+    <button class="icon-btn" id="infoBtn" aria-label="About, privacy and terms">i</button>
+  </header>
+
+  <main>
+    <section id="tab-mine">
+      <div class="layer"><span>Layer: <b id="lname">Clay</b></span><span>Depth <span id="lnum">1</span></span></div>
+      <div class="bar" title="Progress to the next layer"><i id="lbar"></i></div>
+
+      <div id="stage" role="button" tabindex="0" aria-label="Tap to mine diamonds">
+        <svg viewBox="0 0 300 250" aria-hidden="true">
+          <defs>
+            <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color:var(--ra)"/><stop offset="1" style="stop-color:var(--rb)"/>
+            </linearGradient>
+          </defs>
+          <g id="rockG">
+            <path d="M14 238 L46 128 L104 64 L186 50 L250 98 L288 238 Z" fill="url(#rg)"/>
+            <path d="M46 128 L104 64 L130 150 L14 238 Z" fill="#fff" opacity=".06"/>
+            <path d="M186 50 L250 98 L288 238 L200 170 Z" fill="#000" opacity=".16"/>
+            <polyline id="c1" points="104,64 128,110 112,140" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>
+            <polyline id="c2" points="186,50 176,98 196,130" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>
+            <polyline id="c3" points="60,200 96,176 90,150" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>
+            <polygon points="150,96 194,134 150,214 106,134" fill="#5fe0e6"/>
+            <polygon points="150,96 194,134 150,142 106,134" fill="#c4f8fa"/>
+            <polygon points="150,142 194,134 150,214" fill="#2fb3bd"/>
+            <polygon points="150,142 106,134 150,214" fill="#46cdd6"/>
+          </g>
+        </svg>
+        <button id="vein" hidden aria-label="Golden vein: tap for a big bonus">★</button>
+      </div>
+
+      <div class="meta"><span>Energy</span><span id="etxt">100 / 100</span></div>
+      <div class="bar e"><i id="ebar"></i></div>
+
+      <div class="opt">
+        <p>Optional bonuses. The game works fully without ads.</p>
+        <button class="btn" id="adBoost">Watch an ad: 2× diamonds for 2 minutes</button>
+        <button class="btn" id="adEnergy">Watch an ad: refill energy</button>
+      </div>
+    </section>
+
+    <section id="tab-up" hidden>
+      <h2>Upgrades</h2>
+      <div class="card" id="uplist"></div>
+    </section>
+
+    <section id="tab-vault" hidden>
+      <h2>Gem collection</h2>
+      <p class="hint">Gems drop at random while you mine. Each new type you discover adds +1 diamond per tap for good, even if you sell it. A golden ★ vein sometimes appears on the rock: tap it fast for a big bonus.</p>
+      <div class="grid" id="gems"></div>
+      <h2>Goals</h2>
+      <div class="card" id="achs"></div>
+    </section>
+
+    <section id="tab-day" hidden>
+      <h2>Daily reward</h2>
+      <div class="card"><div class="row"><div class="t"><b id="streak">Day 1</b><span id="streaksub">Come back every day to grow your streak.</span></div><button class="btn go" id="claimDaily">Claim</button></div></div>
+      <h2>Today’s tasks</h2>
+      <div class="card" id="tasklist"></div>
+      <h2>Your stats</h2>
+      <div class="card" id="stats"></div>
+    </section>
+  </main>
+
+  <nav role="tablist">
+    <button role="tab" data-tab="mine" aria-selected="true">Mine</button>
+    <button role="tab" data-tab="up" aria-selected="false">Upgrades</button>
+    <button role="tab" data-tab="vault" aria-selected="false">Vault</button>
+    <button role="tab" data-tab="day" aria-selected="false">Daily</button>
+  </nav>
+</div>
+
+<div id="toast" role="status"></div>
+
+<div id="modal" role="dialog" aria-modal="true" aria-label="About Diamond Miner">
+  <div class="box">
+    <b style="font-size:18px">Diamond Miner</b>
+    <h3>About the game</h3>
+    <p>Tap the rock to mine diamonds, buy upgrades and dig through deeper layers. Diamonds are in-game points only. They have no cash value and cannot be withdrawn or exchanged.</p>
+    <h3>Ads</h3>
+    <p>Ads are optional. They only appear when you press a button that says “Watch an ad”, and you get the bonus after the ad finishes. You never need to watch an ad to play. Ads are provided by AdsGram.</p>
+    <h3>Privacy</h3>
+    <p>Your progress is saved on your device. The game uses your Telegram user ID only to keep your save separate from other players. We do not sell personal data. AdsGram may process data under its own privacy policy.</p>
+    <h3>Terms</h3>
+    <p>This game is provided as is, for entertainment. Any attempt to cheat or automate play may be blocked.</p>
+    <h3>Contact</h3>
+    <p>@gemminer22_bot</p>
+    <button class="btn go" id="closeInfo" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ====== SETTINGS ====== */
+var ADSGRAM_BLOCK_ID = "57618"; /* paste your reward block ID from the AdsGram dashboard */
+var AD_COOLDOWN_MS = 45000;
+var OFFLINE_CAP_S = 7200;
+
+var TG = window.Telegram && window.Telegram.WebApp;
+if (TG) {
+  try { TG.ready(); TG.expand(); } catch(e){}
+  try { TG.disableVerticalSwipes && TG.disableVerticalSwipes(); } catch(e){}
+  try { TG.setHeaderColor && TG.setHeaderColor("#101c25"); TG.setBackgroundColor && TG.setBackgroundColor("#101c25"); } catch(e){}
+}
+var uid = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.id) || "local";
+var KEY = "diamondminer_v1_" + uid;
+
+function $(id){ return document.getElementById(id); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function yesterday(){ return new Date(Date.now()-864e5).toISOString().slice(0,10); }
+function fmt(n){
+  n = Math.floor(n);
+  if (n >= 1e9) return (n/1e9).toFixed(2) + "B";
+  if (n >= 1e6) return (n/1e6).toFixed(2) + "M";
+  if (n >= 1e4) return (n/1e3).toFixed(1) + "K";
+  return String(n);
+}
+
+/* ====== STATE ====== */
+function fresh(){
+  return {gems:0,total:0,taps:0,lv:{pick:0,drill:0,lamp:0,charge:0},energy:100,last:Date.now(),
+    boostUntil:0,streak:0,lastClaim:"",day:"",tasks:{tap:0,buy:0,earn:0,done:{}},ads:0,adAt:0,vault:{},found:{},ach:{},veins:0};
+}
+var s = fresh();
+try {
+  var raw = localStorage.getItem(KEY);
+  if (raw) { var p = JSON.parse(raw); s = Object.assign(fresh(), p); s.lv = Object.assign(fresh().lv, p.lv||{}); }
+} catch(e){}
+function save(){ try { s.last = Date.now(); localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} }
+
+function rollDay(){
+  if (s.day !== today()) { s.day = today(); s.tasks = {tap:0,buy:0,earn:0,done:{}}; }
+}
+rollDay();
+
+/* ====== GAME RULES ====== */
+var UP = [
+  {id:"pick",  name:"Sharper pickaxe",  desc:"+1 diamond per tap",       base:50,  g:1.7},
+  {id:"drill", name:"Drill rig",        desc:"+1 diamond per second",    base:100, g:1.7},
+  {id:"lamp",  name:"Bigger battery",   desc:"+50 maximum energy",       base:80,  g:1.6},
+  {id:"charge",name:"Fast charger",     desc:"+1 energy regained per second", base:150, g:1.8}
+];
+var LAYERS = [
+  {n:"Clay",a:"#a8745a",b:"#744c3a"},{n:"Limestone",a:"#bdb6a2",b:"#868071"},
+  {n:"Slate",a:"#7f93a3",b:"#4f6171"},{n:"Granite",a:"#b08f93",b:"#74575c"},
+  {n:"Basalt",a:"#6b6f82",b:"#3f4254"},{n:"Quartz vein",a:"#c9b6d8",b:"#8a769c"},
+  {n:"Obsidian",a:"#4a4660",b:"#22202f"},{n:"Deep core",a:"#d4663f",b:"#7d2a17"}
+];
+function cost(u){ return Math.floor(u.base * Math.pow(u.g, s.lv[u.id])); }
+function kinds(){ return Object.keys(s.found).length; }
+function power(){ return 1 + s.lv.pick + kinds(); }
+function auto(){ return s.lv.drill; }
+function maxE(){ return 100 + 50*s.lv.lamp; }
+function regen(){ return 1 + s.lv.charge; }
+function mult(){ return Date.now() < s.boostUntil ? 2 : 1; }
+function level(){ return Math.floor((1 + Math.sqrt(1 + 4*s.total/100))/2); }
+function addGems(n){ s.gems += n; s.total += n; s.tasks.earn += n; }
+
+/* offline progress (half rate, capped) */
+(function(){
+  var secs = Math.min(OFFLINE_CAP_S, Math.max(0, (Date.now() - s.last)/1000));
+  if (secs > 20) {
+    s.energy = maxE();
+    var gain = Math.floor(secs * auto() * 0.5);
+    if (gain > 0) { addGems(gain); setTimeout(function(){ toast("Welcome back. Your drills mined " + fmt(gain) + " while you were away."); }, 400); }
+  }
+  if (s.energy > maxE()) s.energy = maxE();
+})();
+
+/* ====== RENDER ====== */
+var lastLayer = -1;
+function render(){
+  $("bal").textContent = fmt(s.gems);
+  var a = auto() * mult();
+  $("rate").textContent = "+" + fmt(a) + "/s";
+  var left = Math.max(0, Math.ceil((s.boostUntil - Date.now())/1000));
+  $("boost").textContent = left ? "2× for " + Math.floor(left/60) + ":" + String(left%60).padStart(2,"0") : "";
+  var lv = level(), idx = Math.min(lv-1, LAYERS.length-1);
+  if (idx !== lastLayer) {
+    lastLayer = idx;
+    document.documentElement.style.setProperty("--ra", LAYERS[idx].a);
+    document.documentElement.style.setProperty("--rb", LAYERS[idx].b);
+    $("lname").textContent = LAYERS[idx].n;
+  }
+  $("lnum").textContent = lv;
+  var start = 100*lv*(lv-1), next = 100*(lv+1)*lv, f = (s.total-start)/(next-start);
+  $("lbar").style.width = Math.min(100, f*100) + "%";
+  $("c1").style.opacity = f > .25 ? 1 : 0;
+  $("c2").style.opacity = f > .5 ? 1 : 0;
+  $("c3").style.opacity = f > .75 ? 1 : 0;
+  $("ebar").style.width = (s.energy/maxE()*100) + "%";
+  $("etxt").textContent = Math.floor(s.energy) + " / " + maxE();
+  var cd = Date.now() - s.adAt < AD_COOLDOWN_MS;
+  $("adBoost").disabled = cd; $("adEnergy").disabled = cd;
+}
+
+function renderUp(){
+  var h = "";
+  UP.forEach(function(u){
+    var c = cost(u), can = s.gems >= c;
+    h += '<div class="row"><div class="t"><b>' + u.name + ' (level ' + s.lv[u.id] + ')</b><span>' + u.desc + '</span></div>' +
+         '<button class="btn" data-up="' + u.id + '"' + (can ? "" : " disabled") + '>' + fmt(c) + '</button></div>';
+  });
+  $("uplist").innerHTML = h;
+}
+
+var TASKS = [
+  {id:"tap", t:"Tap 150 times", goal:150, reward:150, get:function(){return s.tasks.tap;}},
+  {id:"buy", t:"Buy 1 upgrade", goal:1, reward:200, get:function(){return s.tasks.buy;}},
+  {id:"earn",t:"Mine 1,000 diamonds", goal:1000, reward:300, get:function(){return s.tasks.earn;}}
+];
+function renderDay(){
+  rollDay();
+  var nextStreak = s.lastClaim === yesterday() ? s.streak + 1 : (s.lastClaim === today() ? s.streak : 1);
+  var claimed = s.lastClaim === today();
+  $("streak").textContent = "Day " + (claimed ? s.streak : nextStreak) + " streak";
+  $("streaksub").textContent = claimed ? "Claimed today. Come back tomorrow." : "Reward: " + fmt(100*Math.min(nextStreak,7)) + " diamonds";
+  $("claimDaily").disabled = claimed;
+  var h = "";
+  TASKS.forEach(function(k){
+    var v = Math.min(k.goal, k.get()), done = s.tasks.done[k.id], ready = v >= k.goal && !done;
+    h += '<div class="row"><div class="t"><b>' + k.t + '</b><span>' + fmt(v) + ' / ' + fmt(k.goal) + ' · reward ' + k.reward + '</span></div>' +
+         '<button class="btn' + (ready ? " go" : "") + '" data-task="' + k.id + '"' + (ready ? "" : " disabled") + '>' + (done ? "Done" : "Claim") + '</button></div>';
+  });
+  $("tasklist").innerHTML = h;
+  $("stats").innerHTML =
+    '<div class="stat"><span>Total mined</span><span>' + fmt(s.total) + '</span></div>' +
+    '<div class="stat"><span>Taps</span><span>' + fmt(s.taps) + '</span></div>' +
+    '<div class="stat"><span>Depth</span><span>' + level() + '</span></div>' +
+    '<div class="stat"><span>Diamonds per tap</span><span>' + power() + '</span></div>' +
+    '<div class="stat"><span>Diamonds per second</span><span>' + auto() + '</span></div>';
+}
+
+var tab = "mine";
+function refreshTab(){ if (tab === "up") renderUp(); else if (tab === "vault") renderVault(); else if (tab === "day") renderDay(); }
+
+/* ====== TOAST ====== */
+var tt;
+function toast(m){ var t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(function(){ t.classList.remove("on"); }, 2600); }
+
+/* ====== TAPPING ====== */
+var stage = $("stage"), rockG = $("rockG");
+function haptic(kind){ try { TG && TG.HapticFeedback && TG.HapticFeedback.impactOccurred(kind); } catch(e){} }
+function tap(x, y){
+  if (s.energy < 1) { toast("Out of energy. It recharges every second."); return; }
+  s.energy -= 1; s.taps += 1; s.tasks.tap += 1;
+  var g = power() * mult();
+  addGems(g);
+  haptic("light");
+  chips(x, y);
+  dropGem();
+  try { rockG.animate([{transform:"scale(.96)"},{transform:"scale(1)"}], {duration:110}); } catch(e){}
+  var r = stage.getBoundingClientRect(), p = document.createElement("span");
+  p.className = "pop"; p.textContent = "+" + g;
+  p.style.left = (x - r.left - 12) + "px"; p.style.top = (y - r.top - 20) + "px";
+  stage.appendChild(p); setTimeout(function(){ p.remove(); }, 800);
+  render();
+}
+stage.addEventListener("pointerdown", function(e){ e.preventDefault(); tap(e.clientX, e.clientY); });
+stage.addEventListener("keydown", function(e){
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); var r = stage.getBoundingClientRect(); tap(r.left + r.width/2, r.top + r.height/2); }
+});
+
+/* ====== UPGRADES / DAILY ====== */
+$("uplist").addEventListener("click", function(e){
+  var b = e.target.closest("[data-up]"); if (!b) return;
+  var u = UP.filter(function(x){ return x.id === b.getAttribute("data-up"); })[0], c = cost(u);
+  if (s.gems < c) return;
+  s.gems -= c; s.lv[u.id] += 1; s.tasks.buy += 1;
+  if (u.id === "lamp") s.energy = Math.min(maxE(), s.energy + 50);
+  haptic("medium"); save(); render(); renderUp();
+});
+$("claimDaily").addEventListener("click", function(){
+  if (s.lastClaim === today()) return;
+  s.streak = s.lastClaim === yesterday() ? s.streak + 1 : 1;
+  s.lastClaim = today();
+  var r = 100 * Math.min(s.streak, 7); addGems(r);
+  toast("Daily reward: +" + r + " diamonds"); save(); render(); renderDay();
+});
+$("tasklist").addEventListener("click", function(e){
+  var b = e.target.closest("[data-task]"); if (!b) return;
+  var k = TASKS.filter(function(x){ return x.id === b.getAttribute("data-task"); })[0];
+  if (s.tasks.done[k.id] || k.get() < k.goal) return;
+  s.tasks.done[k.id] = true; addGems(k.reward);
+  toast("Task done: +" + k.reward + " diamonds"); save(); render(); renderDay();
+});
+
+/* ====== OPTIONAL REWARDED ADS (AdsGram) ====== */
+var adController = null;
+try {
+  if (window.Adsgram && ADSGRAM_BLOCK_ID && ADSGRAM_BLOCK_ID.indexOf("YOUR_") !== 0) {
+    adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+  }
+} catch(e){}
+function showAd(onReward){
+  if (Date.now() - s.adAt < AD_COOLDOWN_MS) return;
+  if (!adController) { toast("Ads are not available right now."); return; }
+  adController.show().then(function(res){
+    if (res && res.done) { s.adAt = Date.now(); s.ads += 1; onReward(); save(); render(); }
+    else toast("Watch the full ad to get the bonus.");
+  }).catch(function(){ toast("No ad available right now. Try again soon."); });
+}
+$("adBoost").addEventListener("click", function(){
+  showAd(function(){ s.boostUntil = Math.max(Date.now(), s.boostUntil) + 120000; toast("2× diamonds for 2 minutes"); });
+});
+$("adEnergy").addEventListener("click", function(){
+  showAd(function(){ s.energy = maxE(); toast("Energy refilled"); });
+});
+
+/* ====== NAV / MODAL ====== */
+document.querySelector("nav").addEventListener("click", function(e){
+  var b = e.target.closest("[data-tab]"); if (!b) return;
+  tab = b.getAttribute("data-tab");
+  ["mine","up","vault","day"].forEach(function(n){ $("tab-" + n).hidden = n !== tab; });
+  document.querySelectorAll("nav button").forEach(function(x){ x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+  refreshTab();
+});
+$("infoBtn").addEventListener("click", function(){ $("modal").classList.add("on"); });
+$("closeInfo").addEventListener("click", function(){ $("modal").classList.remove("on"); });
+
+/* ====== GEMS, GOLD VEINS, GOALS ====== */
+var GEMS = [
+  {id:"amethyst",n:"Amethyst",c:"#b58cf0",w:50,v:40},
+  {id:"topaz",n:"Topaz",c:"#f2b45a",w:30,v:90},
+  {id:"emerald",n:"Emerald",c:"#5fd68f",w:14,v:220},
+  {id:"ruby",n:"Ruby",c:"#ef5b78",w:5,v:650},
+  {id:"sapphire",n:"Sapphire",c:"#5b8cf0",w:1,v:1600}
+];
+function dropGem(){
+  if (Math.random() > 0.035) return;
+  var r = Math.random()*100, acc = 0, g = GEMS[0];
+  for (var i = 0; i < GEMS.length; i++) { acc += GEMS[i].w; if (r < acc) { g = GEMS[i]; break; } }
+  var first = !s.found[g.id];
+  s.found[g.id] = true; s.vault[g.id] = (s.vault[g.id] || 0) + 1;
+  haptic("medium");
+  toast(first ? "New gem: " + g.n + ". +1 diamond per tap for good." : "You found a " + g.n + ".");
+  if (tab === "vault") renderVault();
+}
+function chip(x, y){
+  var r = stage.getBoundingClientRect(), c = document.createElement("i");
+  c.className = "chip"; c.style.left = (x - r.left) + "px"; c.style.top = (y - r.top) + "px";
+  stage.appendChild(c);
+  try { c.animate([{transform:"translate(0,0)",opacity:1},{transform:"translate(" + ((Math.random()-.5)*90) + "px," + (20+Math.random()*50) + "px)",opacity:0}],{duration:520,easing:"ease-in"}); } catch(e){}
+  setTimeout(function(){ c.remove(); }, 560);
+}
+function chips(x, y){ for (var i = 0; i < 4; i++) chip(x, y); }
+
+var vein = $("vein"), hideT;
+function scheduleVein(){ setTimeout(showVein, 25000 + Math.random()*30000); }
+function showVein(){
+  vein.style.left = (15 + Math.random()*60) + "%"; vein.style.top = (25 + Math.random()*40) + "%";
+  vein.hidden = false;
+  hideT = setTimeout(function(){ vein.hidden = true; scheduleVein(); }, 7000);
+}
+vein.addEventListener("pointerdown", function(e){
+  e.stopPropagation(); e.preventDefault();
+  clearTimeout(hideT); vein.hidden = true; scheduleVein();
+  var g = power() * mult() * 40; addGems(g); s.veins += 1;
+  haptic("heavy"); toast("Gold vein. +" + fmt(g) + " diamonds"); save(); render();
+});
+
+var GOALS = [
+  {t:"Mine 100 diamonds", ok:function(){ return s.total >= 100; }},
+  {t:"Tap 1,000 times", ok:function(){ return s.taps >= 1000; }},
+  {t:"Reach depth 5", ok:function(){ return level() >= 5; }},
+  {t:"Find all 5 gems", ok:function(){ return kinds() >= 5; }},
+  {t:"Tap 5 gold veins", ok:function(){ return s.veins >= 5; }},
+  {t:"Reach 20 upgrade levels", ok:function(){ var n = 0; for (var k in s.lv) n += s.lv[k]; return n >= 20; }}
+];
+function checkAch(){
+  GOALS.forEach(function(k, i){
+    if (!s.ach[i] && k.ok()) { s.ach[i] = true; addGems(250); toast("Goal complete: " + k.t + ". +250 diamonds"); if (tab === "vault") renderVault(); }
+  });
+}
+function renderVault(){
+  var h = "";
+  GEMS.forEach(function(g){
+    var f = s.found[g.id], n = s.vault[g.id] || 0;
+    h += '<div class="gem' + (f ? "" : " locked") + '"><svg viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,3 27,12 16,29 5,12" fill="' + (f ? g.c : "#2b4256") + '"/><polygon points="16,3 27,12 16,13 5,12" fill="#fff" opacity=".35"/></svg><b>' + (f ? g.n : "Unknown gem") + '</b><small>' + (f ? "Owned " + n + " · worth " + g.v + " each" : "Keep mining to find it") + '</small>' +
+      (f ? '<button class="btn" data-sell="' + g.id + '"' + (n ? "" : " disabled") + '>Sell for ' + fmt(n*g.v) + '</button>' : "") + '</div>';
+  });
+  $("gems").innerHTML = h;
+  var a = "";
+  GOALS.forEach(function(k, i){ a += '<div class="stat"><span>' + k.t + '</span><span>' + (s.ach[i] ? "Done" : "250 reward") + '</span></div>'; });
+  $("achs").innerHTML = a;
+}
+$("gems").addEventListener("click", function(e){
+  var b = e.target.closest("[data-sell]"); if (!b) return;
+  var g = GEMS.filter(function(x){ return x.id === b.getAttribute("data-sell"); })[0], n = s.vault[g.id] || 0;
+  if (!n) return;
+  s.vault[g.id] = 0; addGems(n*g.v); toast("Sold " + n + " " + g.n + " for " + fmt(n*g.v)); save(); render(); renderVault();
+});
+
+/* ====== LOOP ====== */
+setInterval(function(){
+  s.energy = Math.min(maxE(), s.energy + regen());
+  var a = auto() * mult(); if (a > 0) addGems(a);
+  render();
+  if (tab === "up") renderUp();
+  checkAch();
+}, 1000);
+setInterval(save, 4000);
+document.addEventListener("visibilitychange", function(){ if (document.hidden) save(); });
+window.addEventListener("pagehide", save);
+
+scheduleVein();
+render();
+})();
+</script>
+</body>
+</html>
